@@ -1,0 +1,51 @@
+{
+  "name": "nc450",
+  "version": "0.0.1",
+  "description": "Client for controlling TP Link NC450 webcam",
+  "main": "./dist/index.js",
+  "bin": {
+    "nc450": "./dist/bin.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build:clean": "rimraf dist",
+    "build": "npm run build:clean && babel src --out-dir dist",
+    "lint": "standard",
+    "lint:fix": "standard --fix",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "nc450",
+    "webcam",
+    "api"
+  ],
+  "repository": "jawish/nc450",
+  "author": "Jawish Hameed <jawish@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "babel-cli": "^6.24.1",
+    "babel-preset-env": "^1.6.0",
+    "np": "^2.16.0",
+    "rimraf": "^2.6",
+    "standard": "^10.0.2"
+  },
+  "dependencies": {
+    "bonjour": "^3.5.0",
+    "ip": "^1.1.5",
+    "superagent": "^3.5.2"
+  },
+  "babel": {
+    "presets": [
+      [
+        "env",
+        {
+          "targets": {
+            "node": "current"
+          }
+        }
+      ]
+    ]
+  }
+}
