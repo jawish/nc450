@@ -1,6 +1,7 @@
 'use strict'
 
-import superagent from 'superagent'
+const axios = require('axios')
+const qs = require('qs')
 
 const ENDPOINTS = {
   LOGIN: 'login.fcgi',
@@ -32,87 +33,92 @@ const ERRORS = {
 }
 
 const defaultOptions = {
-  host: '',
-  port: 80,
+  baseUrl: '',
   username: 'admin',
   password: 'admin',
   token: null
 }
 
-export default class NC450 {
+class NC450 {
   constructor (options) {
     this.options = Object.assign(defaultOptions, options || {})
-    this.baseUrl = `http://${this.options.host}:${this.options.port}`
-    this.agent = superagent.agent()
+
+    axios.defaults.baseURL = this.options.baseUrl
+    axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded'
   }
 
   reboot () {
-    this.agent
-      .post(`${this.baseUrl}/${ENDPOINTS.REBOOT}`)
-      .type('form')
-      .send({ token: this.token })
-      .end()
-  }
-
-  login (username, password) {
     return new Promise((resolve, reject) => {
-      this.agent
-      .post(`${this.baseUrl}/${ENDPOINTS.LOGIN}`)
-      .type('form')
-      .send({
-        Username: username,
-        Password: Buffer.from(password, 'utf8').toString('base64')
-      })
-      .end(response => {
-        const body = JSON.parse(response.text)
-
-        if (!('errorCode' in body) || body.errorCode !== 0) {
-          reject(new Error(ERRORS[`${body.errorCode}`]))
-        }
-
-        this.token = body.token
-        this.isAdmin = body.isAdmin === 1
-
-        resolve(true)
-      })
+      this._call(`/${ENDPOINTS.REBOOT}`)
+        .then(data => {
+          resolve()
+        })
+        .catch(err => {
+          reject(new Error(ERRORS[err]))
+        })
     })
   }
 
-  turn (direction, timestep = 1000) {
+  login () {
     return new Promise((resolve, reject) => {
-      if (!VALID_DIRECTIONS.includes(direction)) {
-        reject(new Error(`Invalid direction (${direction}`))
+      const form = {
+        Username: this.options.username,
+        Password: Buffer.from(this.options.password, 'utf8').toString('base64')
       }
 
-      this.agent
-        .post(`${this.baseUrl}/${ENDPOINTS.SET_TURN_DIRECTION}`)
-        .type('form')
-        .send({
-          operation: 'start',
-          token: this.token,
-          direction
-        })
-        .end(response => {
-          const body = JSON.parse(response.text)
+      this._call(`/${ENDPOINTS.LOGIN}`, form)
+        .then(data => {
+          this.token = data.token
 
-          if (!('errorCode' in body) || body.errorCode !== 0) {
-            reject(new Error('Failed to start turning'))
+          resolve()
+        })
+        .catch(() => {
+          reject('Login failed')
+        })
+    })
+  }
+
+  turn (direction, timestep = 1000, operation = 'start') {
+    return new Promise((resolve, reject) => {
+      if (!VALID_DIRECTIONS.includes(direction)) {
+        reject(`Invalid direction (${direction}`)
+      }
+
+      this._call(`${this.baseUrl}/${ENDPOINTS.SET_TURN_DIRECTION}`, { operation, direction })
+        .then(data => {
+          if (operation == 'start') {
+            setTimeout(() => {
+              this.turn(direction, timestep, 'stop')
+            }, timestep)
           }
 
-          setTimeout(() => {
-            this.agent
-            .post(`${this.baseUrl}/${ENDPOINTS.SET_TURN_DIRECTION}`)
-            .type('form')
-            .send({
-              operation: 'stop',
-              token: this.token,
-              direction
-            })
-            .end(response => {
-              resolve(true)
-            })
-          })
+          resolve()
+        })
+        .catch(err => {
+          reject('Failed turn operation')
+        })
+    })
+  }
+
+  _call (endpoint, data = {}) {
+    return new Promise((resolve, reject) => {
+      const form = Object.assign(data, { token: this.token })
+      
+      axios.post(endpoint, qs.stringify(form))
+        .then(response => {
+          const data = response.data
+
+          if (!('errorCode' in data) || data.errorCode !== 0) {
+            reject(data.errorCode)
+          }
+
+          resolve(data)
+        })
+        .catch(err => {
+          reject(err)
         })
     })
   }
 }
+
+module.exports = NC450

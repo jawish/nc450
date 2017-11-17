@@ -1,7 +1,7 @@
-import NC450 from './nc450'
-import discover from './discover'
+const NC450 = require('./nc450')
+const discover = require('./discover')
 
-export default NC450
-export {
+module.exports = {
+  NC450,
   discover
 }
