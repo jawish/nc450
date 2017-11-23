@@ -19,7 +19,7 @@ function discover (timeout = 60000, callback = undefined) {
   let discoveredHosts = []
 
   // Start bonjour discovery and return a promise.
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     // Use Bonjour service discovery to find http servers on the network.
     const bonjour = (new Bonjour()).find({ type: 'http' }, service => {
       // Check each found IPv4 address for a valid camera host

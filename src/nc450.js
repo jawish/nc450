@@ -44,7 +44,7 @@ const defaultOptions = {
 }
 
 class NC450 {
-  constructor(options) {
+  constructor (options) {
     this.options = Object.assign(defaultOptions, options || {})
 
     axios.defaults.baseURL = this.options.baseUrl
@@ -53,7 +53,7 @@ class NC450 {
     this.cookieJar = new toughCookie.CookieJar()
   }
 
-  reboot() {
+  reboot () {
     return new Promise((resolve, reject) => {
       this._call(`/${ENDPOINTS.REBOOT}`)
         .then(data => {
@@ -65,7 +65,7 @@ class NC450 {
     })
   }
 
-  login() {
+  login () {
     return new Promise((resolve, reject) => {
       const form = {
         Username: this.options.username,
@@ -78,42 +78,42 @@ class NC450 {
 
           resolve()
         })
-        .catch(() => {
-          reject('Login failed')
+        .catch(err => {
+          reject(new Error(`Login failed with error: ${err}`))
         })
     })
   }
 
-  turn(direction, timestep = 1000, operation = 'start') {
+  turn (direction, timestep = 1000, operation = 'start') {
     return new Promise((resolve, reject) => {
       if (!VALID_DIRECTIONS.includes(direction)) {
-        reject(`Invalid direction (${direction}`)
+        reject(new Error(`Invalid direction (${direction}`))
       }
 
       this._call(`/${ENDPOINTS.SET_TURN_DIRECTION}`, {
-          operation,
-          direction
-        })
-        .then(data => {
-          if (operation == 'start') {
-            setTimeout(() => {
-              this.turn(direction, timestep, 'stop')
-                .then(() => resolve())
-                .catch(err => reject(err))
-            }, timestep)
-          }
-        })
-        .catch(err => {
-          reject(err)
-        })
+        operation,
+        direction
+      })
+      .then(data => {
+        if (operation === 'start') {
+          setTimeout(() => {
+            this.turn(direction, timestep, 'stop')
+              .then(() => resolve())
+              .catch(err => reject(err))
+          }, timestep)
+        }
+      })
+      .catch(err => {
+        reject(err)
+      })
     })
   }
 
-  reset() {
+  reset () {
     return this.turn('c', 1000)
   }
 
-  _call(endpoint, data = {}) {
+  _call (endpoint, data = {}) {
     return new Promise((resolve, reject) => {
       if (this.token) {
         data = Object.assign(data, {
@@ -122,21 +122,21 @@ class NC450 {
       }
 
       axios.post(endpoint, qs.stringify(data), {
-          jar: this.cookieJar,
-          withCredentials: true
-        })
-        .then(response => {
-          const data = response.data
+        jar: this.cookieJar,
+        withCredentials: true
+      })
+      .then(response => {
+        const data = response.data
 
-          if (!('errorCode' in data) || data.errorCode !== 0) {
-            reject(data.errorCode)
-          }
+        if (!('errorCode' in data) || data.errorCode !== 0) {
+          reject(data.errorCode)
+        }
 
-          resolve(data)
-        })
-        .catch(err => {
-          reject(err)
-        })
+        resolve(data)
+      })
+      .catch(err => {
+        reject(err)
+      })
     })
   }
 }

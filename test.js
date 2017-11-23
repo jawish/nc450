@@ -15,7 +15,7 @@ const moveInterval = 30000
 
 let counter = 0
 
-function moveCamera() {
+function moveCamera () {
   counter = (counter > 20) ? 0 : counter + 1
 
   cam.login()
