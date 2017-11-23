@@ -1,6 +1,6 @@
 {
   "name": "nc450",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Client for controlling TP Link NC450 webcam",
   "main": "./dist/index.js",
   "bin": {
@@ -33,6 +33,7 @@
   },
   "dependencies": {
     "axios": "^0.17.1",
+    "axios-cookiejar-support": "^0.1.4",
     "bonjour": "^3.5.0",
     "ip": "^1.1.5",
     "qs": "^6.5.1"

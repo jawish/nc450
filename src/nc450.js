@@ -2,6 +2,10 @@
 
 const axios = require('axios')
 const qs = require('qs')
+const axiosCookieJarSupport = require('axios-cookiejar-support')
+const toughCookie = require('tough-cookie')
+
+axiosCookieJarSupport(axios)
 
 const ENDPOINTS = {
   LOGIN: 'login.fcgi',
@@ -40,14 +44,16 @@ const defaultOptions = {
 }
 
 class NC450 {
-  constructor (options) {
+  constructor(options) {
     this.options = Object.assign(defaultOptions, options || {})
 
     axios.defaults.baseURL = this.options.baseUrl
     axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded'
+
+    this.cookieJar = new toughCookie.CookieJar()
   }
 
-  reboot () {
+  reboot() {
     return new Promise((resolve, reject) => {
       this._call(`/${ENDPOINTS.REBOOT}`)
         .then(data => {
@@ -59,7 +65,7 @@ class NC450 {
     })
   }
 
-  login () {
+  login() {
     return new Promise((resolve, reject) => {
       const form = {
         Username: this.options.username,
@@ -78,33 +84,47 @@ class NC450 {
     })
   }
 
-  turn (direction, timestep = 1000, operation = 'start') {
+  turn(direction, timestep = 1000, operation = 'start') {
     return new Promise((resolve, reject) => {
       if (!VALID_DIRECTIONS.includes(direction)) {
         reject(`Invalid direction (${direction}`)
       }
 
-      this._call(`${this.baseUrl}/${ENDPOINTS.SET_TURN_DIRECTION}`, { operation, direction })
+      this._call(`/${ENDPOINTS.SET_TURN_DIRECTION}`, {
+          operation,
+          direction
+        })
         .then(data => {
           if (operation == 'start') {
             setTimeout(() => {
               this.turn(direction, timestep, 'stop')
+                .then(() => resolve())
+                .catch(err => reject(err))
             }, timestep)
           }
-
-          resolve()
         })
         .catch(err => {
-          reject('Failed turn operation')
+          reject(err)
         })
     })
   }
 
-  _call (endpoint, data = {}) {
+  reset() {
+    return this.turn('c', 1000)
+  }
+
+  _call(endpoint, data = {}) {
     return new Promise((resolve, reject) => {
-      const form = Object.assign(data, { token: this.token })
-      
-      axios.post(endpoint, qs.stringify(form))
+      if (this.token) {
+        data = Object.assign(data, {
+          token: this.token
+        })
+      }
+
+      axios.post(endpoint, qs.stringify(data), {
+          jar: this.cookieJar,
+          withCredentials: true
+        })
         .then(response => {
           const data = response.data
 
